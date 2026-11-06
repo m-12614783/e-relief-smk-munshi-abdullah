@@ -1,0 +1,16 @@
+{
+  "name": "e-relief-smk-munshi-abdullah",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistem Pengurusan Jadual Guru Relief SMK Munshi Abdullah",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}
