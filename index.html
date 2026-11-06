@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-RELIEF | SMK Munshi Abdullah</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#081426;color:#eef4ff}
+header{background:#102b50;padding:22px}
+header h1{margin:0;color:#60c7ff}
+header p{margin:7px 0 0;color:#c4d8f2}
+nav{display:flex;gap:10px;flex-wrap:wrap;padding:15px}
+button{background:#1677d2;color:white;border:0;border-radius:8px;padding:12px 16px;cursor:pointer}
+button:hover{background:#2995ef}
+main{padding:15px;max-width:1100px;margin:auto}
+.card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:18px;margin-bottom:16px}
+h2{color:#60c7ff}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:12px;border-bottom:1px solid #34506e}
+th{color:#60c7ff}
+input,select,textarea{width:100%;padding:12px;margin:7px 0 14px;border-radius:7px;border:1px solid #49627f;background:#091a30;color:white}
+label{color:#cbdcf2}
+.hidden{display:none}
+.tag{background:#174e78;padding:5px 9px;border-radius:20px}
+footer{text-align:center;padding:25px;color:#9db4d1}
+@media(max-width:600px){table{font-size:12px}th,td{padding:8px}}
+</style>
+</head>
+<body>
+<header>
+<h1>e-RELIEF</h1>
+<p>Sistem Pengurusan Guru Relief · SMK Munshi Abdullah</p>
+</header>
+
+<nav>
+<button onclick="showPage('home')">Dashboard</button>
+<button onclick="showPage('request')">Permohonan Relief</button>
+<button onclick="showPage('admin')">Admin</button>
+<button onclick="showPage('tv')">Paparan TV</button>
+</nav>
+
+<main>
+<section id="home">
+<div class="card">
+<h2>Dashboard Relief Hari Ini</h2>
+<p id="today"></p>
+<p>Jumlah tugasan relief: <strong id="total">0</strong></p>
+</div>
+<div class="card">
+<h2>Jadual Guru Relief</h2>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>Masa</th><th>Kelas</th><th>Guru Relief</th><th>Guru Asal</th></tr></thead>
+<tbody id="schedule"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="request" class="hidden">
+<div class="card">
+<h2>Permohonan Relief Guru</h2>
+<p>Isi maklumat permohonan di bawah.</p>
+<form onsubmit="submitRequest(event)">
+<label>Nama guru</label><input id="teacher" required>
+<label>Tarikh</label><input id="date" type="date" required>
+<label>Masa</label><input id="time" placeholder="Contoh: 8:00 - 9:00" required>
+<label>Kelas</label><input id="className" required>
+<label>Sebab permohonan</label><textarea id="reason" required></textarea>
+<button type="submit">Hantar Permohonan</button>
+</form>
+<p id="requestMessage"></p>
+</div>
+</section>
+
+<section id="admin" class="hidden">
+<div class="card">
+<h2>Panel Admin</h2>
+<p>Tambah tugasan guru relief ke dalam jadual.</p>
+<form onsubmit="addRelief(event)">
+<label>Masa</label><input id="aTime" required>
+<label>Kelas</label><input id="aClass" required>
+<label>Guru Relief</label><input id="aRelief" required>
+<label>Guru Asal</label><input id="aOriginal" required>
+<button type="submit">Tambah Jadual</button>
+</form>
+</div>
+<div class="card">
+<h2>Senarai Jadual</h2>
+<div id="adminList"></div>
+</div>
+</section>
+
+<section id="tv" class="hidden">
+<div class="card" style="text-align:center">
+<h1 style="font-size:38px">PAPARAN RELIEF SEKOLAH</h1>
+<h2>SMK MUNSHI ABDULLAH</h2>
+<p id="tvDate"></p>
+<h2>JADUAL GURU RELIEF HARI INI</h2>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>Masa</th><th>Kelas</th><th>Guru Relief</th><th>Guru Asal</th></tr></thead>
+<tbody id="tvSchedule"></tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+
+<footer>e-RELIEF · SMK Munshi Abdullah</footer>
+
+<script>
+let data=JSON.parse(localStorage.getItem("reliefData")||"[]");
+
+function save(){
+ localStorage.setItem("reliefData",JSON.stringify(data));
+ render();
+}
+function showPage(id){
+ ["home","request","admin","tv"].forEach(x=>
+ document.getElementById(x).classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+ render();
+}
+function render(){
+ let rows=data.map((x,i)=>`<tr>
+ <td>${safe(x.time)}</td><td>${safe(x.className)}</td>
+ <td>${safe(x.relief)}</td><td>${safe(x.original)}</td>
+ </tr>`).join("");
+ document.getElementById("schedule").innerHTML=rows||"<tr><td colspan='4'>Belum ada jadual relief.</td></tr>";
+ document.getElementById("tvSchedule").innerHTML=rows||"<tr><td colspan='4'>Belum ada jadual relief.</td></tr>";
+ document.getElementById("total").textContent=data.length;
+ document.getElementById("adminList").innerHTML=data.map((x,i)=>
+ `<p>${safe(x.time)} · ${safe(x.className)} · ${safe(x.relief)}
+ <button onclick="removeRelief(${i})">Padam</button></p>`).join("");
+}
+function safe(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+function addRelief(e){
+ e.preventDefault();
+ data.push({
+ time:aTime.value,className:aClass.value,
+ relief:aRelief.value,original:aOriginal.value
+ });
+ save();e.target.reset();alert("Jadual berjaya ditambah.");
+}
+function removeRelief(i){
+ if(confirm("Padam jadual ini?")){data.splice(i,1);save();}
+}
+function submitRequest(e){
+ e.preventDefault();
+ document.getElementById("requestMessage").textContent=
+ "Permohonan diterima pada paparan ini. Integrasi Google Form akan dibuat selepas ini.";
+ e.target.reset();
+}
+let now=new Date();
+document.getElementById("today").textContent=now.toLocaleDateString("ms-MY",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+document.getElementById("tvDate").textContent=document.getElementById("today").textContent;
+render();
+</script>
+</body>
+</html>
