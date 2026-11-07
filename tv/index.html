@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparan Relief | SMK Munshi Abdullah</title>
+<link rel="icon" href="/assets/img/logo.png">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top,#14345e 0%,#081426 60%);color:#eef4ff;display:flex;flex-direction:column;min-height:100vh}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 40px;border-bottom:2px solid #1677d2;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:22px}
+.brand img{height:110px;width:auto;filter:drop-shadow(0 3px 10px rgba(0,0,0,.45))}
+.brand h1{margin:0;font-size:46px;color:#60c7ff;letter-spacing:1px}
+.brand p{margin:6px 0 0;font-size:24px;color:#c4d8f2}
+.clock{text-align:right}
+#jam{font-size:64px;font-weight:bold;color:#fff;font-variant-numeric:tabular-nums}
+#tarikh{font-size:24px;color:#c4d8f2;margin-top:4px}
+
+main{flex:1;padding:28px 40px}
+h2{font-size:34px;color:#60c7ff;margin:0 0 20px;text-align:center;text-transform:uppercase;letter-spacing:2px}
+
+.kosong{display:flex;flex-direction:column;align-items:center;justify-content:center;height:55vh;text-align:center}
+.kosong .ikon{font-size:120px;margin-bottom:10px}
+.kosong .teks{font-size:46px;color:#9db4d1}
+
+table{width:100%;border-collapse:separate;border-spacing:0 10px;font-size:30px}
+th{text-align:left;color:#60c7ff;font-size:24px;padding:8px 18px;text-transform:uppercase;letter-spacing:1px}
+td{background:#10233d;padding:20px 18px;border-top:1px solid #24466e;border-bottom:1px solid #24466e}
+td:first-child{border-left:1px solid #24466e;border-radius:14px 0 0 14px}
+td:last-child{border-right:1px solid #24466e;border-radius:0 14px 14px 0}
+.masa{font-weight:bold;color:#fff;white-space:nowrap}
+.relief{font-weight:bold;color:#7ee2a8}
+.status{font-size:22px;padding:6px 14px;border-radius:20px;background:#174e78;display:inline-block;white-space:nowrap}
+.status.selesai{background:#1f6b3d}
+.status.dirancang{background:#174e78}
+
+footer{text-align:center;padding:16px;color:#9db4d1;font-size:20px;border-top:1px solid #24466e}
+#ralat{position:fixed;bottom:12px;right:20px;font-size:18px;color:#ffd28a}
+
+@media (max-width:900px){
+  .brand img{height:70px}
+  .brand h1{font-size:30px}
+  .brand p{font-size:16px}
+  #jam{font-size:40px}
+  table{font-size:18px}
+  th{font-size:14px}
+  td{padding:12px 10px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="/assets/img/logo.png" alt="Logo SMK Munshi Abdullah">
+    <div>
+      <h1>PAPARAN RELIEF SEKOLAH</h1>
+      <p>SMK MUNSHI ABDULLAH</p>
+    </div>
+  </div>
+  <div class="clock">
+    <div id="jam">--:--:--</div>
+    <div id="tarikh"></div>
+  </div>
+</header>
+
+<main>
+  <h2>Jadual Guru Relief Hari Ini</h2>
+  <div id="kandungan"></div>
+</main>
+
+<footer>e-RELIEF · SMK Munshi Abdullah</footer>
+<div id="ralat"></div>
+
+<script>
+const $ = id => document.getElementById(id)
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]))
+
+const TZ = 'Asia/Kuala_Lumpur'
+
+function tickJam() {
+  const now = new Date()
+  $('jam').textContent = now.toLocaleTimeString('ms-MY', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  $('tarikh').textContent = now.toLocaleDateString('ms-MY', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function paparKosong() {
+  $('kandungan').innerHTML = `
+    <div class="kosong">
+      <div class="ikon">✓</div>
+      <div class="teks">Tiada guru relief untuk hari ini</div>
+    </div>`
+}
+
+function paparJadual(items) {
+  if (!items.length) return paparKosong()
+  $('kandungan').innerHTML = `
+    <table>
+      <thead>
+        <tr><th>Masa</th><th>Kelas</th><th>Guru Relief</th><th>Guru Asal</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        ${items.map(r => {
+          const cls = String(r.Status_Tugasan).toLowerCase() === 'selesai' ? 'selesai' : 'dirancang'
+          return `<tr>
+            <td class="masa">${esc(r.Masa_Mula)} – ${esc(r.Masa_Tamat)}</td>
+            <td>${esc(r.Nama_Kelas)}</td>
+            <td class="relief">${esc(r.Nama_Guru_Relief)}</td>
+            <td>${esc(r.Nama_Guru_Asal)}</td>
+            <td><span class="status ${cls}">${esc(r.Status_Tugasan)}</span></td>
+          </tr>`
+        }).join('')}
+      </tbody>
+    </table>`
+}
+
+let adaData = false
+
+async function muatData() {
+  try {
+    const r = await fetch('/.netlify/functions/tv-jadual', { cache: 'no-store' })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error || 'Ralat')
+    paparJadual(d.items)
+    adaData = true
+    $('ralat').textContent = ''
+  } catch (e) {
+    // Kekalkan paparan terakhir, dan beritahu bahawa kemas kini gagal
+    if (!adaData) paparKosong()
+    $('ralat').textContent = 'Kemas kini gagal. Cuba semula sebentar lagi.'
+  }
+}
+
+tickJam()
+setInterval(tickJam, 1000)
+muatData()
+setInterval(muatData, 60000)
+
+// Muat semula data apabila paparan kembali aktif (contohnya skrin dikunci)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) muatData()
+})
+</script>
+</body>
+</html>
