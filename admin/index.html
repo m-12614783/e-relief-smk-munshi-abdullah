@@ -4,39 +4,52 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel Admin | e-RELIEF</title>
+<link rel="icon" href="/assets/img/logo.png">
 <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#081426;color:#eef4ff}
-header{background:#102b50;padding:20px 22px}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#081426;color:#eef4ff;min-height:100vh;display:flex;flex-direction:column}
+header{background:#102b50;padding:18px 22px;border-bottom:1px solid #24466e}
 .top{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-header h1{margin:0;color:#60c7ff;font-size:24px}
-header p{margin:6px 0 0;color:#c4d8f2}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{background:#fff;border-radius:10px;padding:4px;display:flex;flex-shrink:0}
+.logo img{height:58px;width:auto;display:block}
+.brand h1{margin:0;color:#60c7ff;font-size:24px}
+.brand p{margin:4px 0 0;color:#c4d8f2;font-size:14px}
 .auth{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 #who{color:#cbdcf2;font-size:14px}
-nav{display:flex;gap:10px;flex-wrap:wrap;padding:15px;max-width:1100px;margin:auto}
-nav a,button{background:#1677d2;color:#fff;border:0;border-radius:8px;padding:11px 16px;cursor:pointer;text-decoration:none;font-size:15px}
+.tag{background:#174e78;padding:5px 10px;border-radius:20px;font-size:13px}
+nav{display:flex;gap:10px;flex-wrap:wrap;padding:15px;max-width:1100px;width:100%;margin:auto}
+nav a,button{background:#1677d2;color:#fff;border:0;border-radius:8px;padding:11px 16px;cursor:pointer;text-decoration:none;font-size:15px;font-family:inherit}
 nav a:hover,button:hover{background:#2995ef}
-main{padding:15px;max-width:1100px;margin:auto}
+button.ghost{background:#24466e}
+button.ghost:hover{background:#34506e}
+main{padding:15px;max-width:1100px;width:100%;margin:auto;flex:1}
 .card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:18px;margin-bottom:16px}
-h2{color:#60c7ff;margin-top:0}
-.hidden{display:none!important}
-.ghost{background:#24466e}
-.ghost:hover{background:#34506e}
+h2{color:#60c7ff;margin:0 0 10px}
 .warn{color:#ffd28a}
+.hidden{display:none!important}
 footer{text-align:center;padding:25px;color:#9db4d1}
+@media(max-width:600px){
+  .brand img{height:44px}
+  .brand h1{font-size:20px}
+  .brand p{font-size:12px}
+}
 </style>
 </head>
 <body>
 <header>
   <div class="top">
-    <div>
-      <h1>Panel Admin</h1>
-      <p>e-RELIEF · SMK Munshi Abdullah</p>
+    <div class="brand">
+      <div class="logo"><img src="/assets/img/logo.png" alt="Logo SMK Munshi Abdullah"></div>
+      <div>
+        <h1>Panel Admin</h1>
+        <p>e-RELIEF · SMK Munshi Abdullah</p>
+      </div>
     </div>
     <div class="auth">
       <span id="who"></span>
-      <span id="roleTag" class="hidden" style="background:#174e78;padding:5px 9px;border-radius:20px;font-size:13px"></span>
+      <span id="roleTag" class="tag hidden"></span>
       <button id="loginBtn" type="button" class="hidden">Log masuk</button>
       <button id="logoutBtn" type="button" class="ghost hidden">Log keluar</button>
     </div>
@@ -49,7 +62,7 @@ footer{text-align:center;padding:25px;color:#9db4d1}
 </nav>
 
 <main>
-  <!-- Skrin sebelum akses disahkan -->
+  <!-- Skrin ini dipaparkan sehingga server mengesahkan role -->
   <section class="card" id="gate">
     <h2>Memeriksa akses...</h2>
     <p id="gateMsg">Sila tunggu sebentar.</p>
@@ -86,6 +99,7 @@ async function checkAccess() {
   const user = netlifyIdentity.currentUser()
   if (!user) {
     $('who').textContent = ''
+    $('roleTag').classList.add('hidden')
     $('logoutBtn').classList.add('hidden')
     return showGate('Sila log masuk untuk mengakses panel admin.', true)
   }
@@ -105,6 +119,7 @@ async function checkAccess() {
     $('roleTag').classList.remove('hidden')
     $('adminOnly').classList.toggle('hidden', d.role !== 'admin_utama')
     $('gate').classList.add('hidden')
+    $('loginBtn').classList.add('hidden')
     $('panel').classList.remove('hidden')
   } catch (e) {
     $('roleTag').classList.add('hidden')
@@ -117,10 +132,7 @@ $('logoutBtn').addEventListener('click', () => netlifyIdentity.logout())
 
 netlifyIdentity.on('init', checkAccess)
 netlifyIdentity.on('login', () => { netlifyIdentity.close(); checkAccess() })
-netlifyIdentity.on('logout', () => {
-  $('roleTag').classList.add('hidden')
-  checkAccess()
-})
+netlifyIdentity.on('logout', checkAccess)
 </script>
 </body>
 </html>
