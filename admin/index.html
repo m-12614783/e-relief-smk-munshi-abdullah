@@ -30,7 +30,6 @@ button.danger:hover{background:#c53030}
 main{padding:15px;max-width:1100px;width:100%;margin:auto;flex:1}
 .card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:18px;margin-bottom:16px}
 h2{color:#60c7ff;margin:0 0 12px}
-h3{color:#60c7ff;margin:0 0 10px;font-size:17px}
 .warn{color:#ffd28a}
 .hidden{display:none!important}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
@@ -39,6 +38,7 @@ input,select,textarea{width:100%;padding:10px;border-radius:7px;border:1px solid
 textarea{resize:vertical;min-height:60px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .msg{margin-top:10px;font-size:14px;color:#ffd28a;white-space:pre-line}
+.info{background:#0b1d33;border-radius:8px;padding:12px;margin-bottom:12px;line-height:1.6}
 .toolbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -52,7 +52,7 @@ footer{text-align:center;padding:25px;color:#9db4d1}
   .brand p{font-size:12px}
 }
 @media print{
-  header,nav,footer,#jadualForm,.toolbar,.acts,#btnCetak,#btnPadamNota{display:none!important}
+  header,nav,footer,#jadualForm,#permohonanCard,#prosesCard,.toolbar,.acts,#btnCetak,#btnReset{display:none!important}
   body{background:#fff;color:#000}
   .card{border:none;background:#fff}
   th{color:#000}
@@ -91,6 +91,59 @@ footer{text-align:center;padding:25px;color:#9db4d1}
   </section>
 
   <div id="panel" class="hidden">
+
+    <!-- PERMOHONAN RELIEF -->
+    <section class="card" id="permohonanCard">
+      <h2>Permohonan Relief</h2>
+      <div class="toolbar">
+        <div>
+          <label for="pStatus">Status</label>
+          <select id="pStatus">
+            <option value="Baharu">Baharu</option>
+            <option value="Diluluskan">Diluluskan</option>
+            <option value="Ditolak">Ditolak</option>
+            <option value="Perlu semak">Perlu semak</option>
+            <option value="">Semua</option>
+          </select>
+        </div>
+      </div>
+      <div class="msg" id="pListMsg" style="color:#cbdcf2"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Dihantar</th><th>Guru</th><th>Tarikh</th><th>Masa</th><th>Kelas</th><th>Sebab</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="pTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- KAD PROSES (lulus atau tolak) -->
+    <section class="card hidden" id="prosesCard">
+      <h2 id="prosesTitle">Proses Permohonan</h2>
+      <div class="info" id="prosesInfo"></div>
+
+      <div id="lulusBox">
+        <label for="pGuruRelief">Pilih guru relief</label>
+        <select id="pGuruRelief"></select>
+        <div class="actions">
+          <button type="button" id="btnSahkanLulus">Sahkan Lulus</button>
+        </div>
+      </div>
+
+      <div id="tolakBox" class="hidden">
+        <label for="pSebabTolak">Sebab penolakan</label>
+        <textarea id="pSebabTolak"></textarea>
+        <div class="actions">
+          <button type="button" id="btnSahkanTolak" class="danger">Sahkan Tolak</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btnBatalProses" class="ghost">Batal</button>
+      </div>
+      <div id="prosesMsg" class="msg"></div>
+    </section>
 
     <!-- BORANG JADUAL -->
     <section class="card">
@@ -164,7 +217,6 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]))
 
-// Pilihan masa setiap 30 minit, 07:00 hingga 18:00
 const TIMES = []
 for (let h = 7; h <= 18; h++) {
   for (const m of [0, 30]) {
@@ -225,14 +277,14 @@ async function checkAccess() {
     $('gate').classList.add('hidden')
     $('loginBtn').classList.add('hidden')
     $('panel').classList.remove('hidden')
-    initJadual()
+    initPanel()
   } catch (e) {
     $('roleTag').classList.add('hidden')
     showGate(e.message || 'Akaun ini tiada akses admin.', false)
   }
 }
 
-/* ---------- Rujukan (guru & kelas) ---------- */
+/* ---------- Rujukan ---------- */
 
 let refData = { guru: [], kelas: [] }
 
@@ -248,6 +300,151 @@ async function loadRef() {
   fillSelect($('fRelief'), refData.guru, 'Pilih guru relief')
   fillSelect($('tKelas'), refData.kelas, 'Semua kelas')
   fillSelect($('tGuru'), refData.guru, 'Semua guru')
+}
+
+/* ---------- Permohonan ---------- */
+
+let currentPermohonan = []
+let prosesItem = null
+
+async function loadPermohonan() {
+  const status = $('pStatus').value
+  const q = status ? '?status=' + encodeURIComponent(status) : ''
+  $('pListMsg').textContent = 'Memuatkan...'
+  try {
+    const d = await api('permohonan-senarai' + q)
+    currentPermohonan = d.items
+    renderPermohonan()
+    $('pListMsg').textContent = d.items.length + ' permohonan'
+  } catch (e) {
+    $('pListMsg').textContent = e.message
+  }
+}
+
+function renderPermohonan() {
+  if (!currentPermohonan.length) {
+    $('pTbody').innerHTML = '<tr><td colspan="8">Tiada permohonan.</td></tr>'
+    return
+  }
+  $('pTbody').innerHTML = currentPermohonan.map((r, i) => {
+    const aksi = r.Status === 'Baharu'
+      ? `<button type="button" class="small" data-lulus="${i}">Lulus</button>
+         <button type="button" class="small danger" data-tolak="${i}">Tolak</button>`
+      : '—'
+    return `<tr>
+      <td>${esc(r.Cap_Masa)}</td>
+      <td>${esc(r.Nama_Guru)}</td>
+      <td>${esc(r.Tarikh)}</td>
+      <td>${esc(r.Masa_Mula)} – ${esc(r.Masa_Tamat)}</td>
+      <td>${esc(r.Nama_Kelas)}</td>
+      <td>${esc(r.Sebab)}</td>
+      <td>${esc(r.Status)}</td>
+      <td class="acts">${aksi}</td>
+    </tr>`
+  }).join('')
+}
+
+function openProses(i, action) {
+  prosesItem = currentPermohonan[i]
+  if (!prosesItem) return
+  const p = prosesItem
+
+  $('prosesTitle').textContent = action === 'lulus' ? 'Luluskan Permohonan' : 'Tolak Permohonan'
+  $('prosesInfo').innerHTML =
+    `<strong>${esc(p.Nama_Guru)}</strong> · ${esc(p.Tarikh)} · ${esc(p.Masa_Mula)} – ${esc(p.Masa_Tamat)} · ${esc(p.Nama_Kelas)}<br>` +
+    `Sebab: ${esc(p.Sebab)}${p.Catatan ? '<br>Catatan: ' + esc(p.Catatan) : ''}`
+
+  $('lulusBox').classList.toggle('hidden', action !== 'lulus')
+  $('tolakBox').classList.toggle('hidden', action !== 'tolak')
+  prosesItem.action = action
+
+  if (action === 'lulus') {
+    $('pGuruRelief').innerHTML = '<option value="">Pilih guru relief</option>' +
+      refData.guru
+        .filter(g => g.id !== p.ID_Guru)
+        .map(g => `<option value="${esc(g.id)}">${esc(g.nama)}</option>`)
+        .join('')
+  }
+
+  $('pSebabTolak').value = ''
+  $('prosesMsg').textContent = ''
+  $('prosesCard').classList.remove('hidden')
+  $('prosesCard').scrollIntoView({ behavior: 'smooth' })
+}
+
+function closeProses() {
+  prosesItem = null
+  $('prosesCard').classList.add('hidden')
+  $('prosesMsg').textContent = ''
+}
+
+function selesaiProses(msg) {
+  closeProses()
+  $('pListMsg').textContent = msg
+  loadPermohonan()
+  loadList()
+}
+
+async function hantarProses(body) {
+  return api('permohonan-proses', { method: 'POST', body: JSON.stringify(body) })
+}
+
+async function sahkanLulus() {
+  if (!prosesItem) return
+  const guruRelief = $('pGuruRelief').value
+  if (!guruRelief) {
+    $('prosesMsg').textContent = 'Sila pilih guru relief.'
+    return
+  }
+
+  const body = {
+    ID_Permohonan: prosesItem.ID_Permohonan,
+    action: 'lulus',
+    ID_Guru_Relief: guruRelief,
+    confirm: false,
+  }
+  $('prosesMsg').textContent = 'Memproses...'
+
+  try {
+    try {
+      await hantarProses(body)
+    } catch (err) {
+      if (err.status === 409 && err.data.needConfirm) {
+        const ok = confirm(err.data.warnings.join('\n') + '\n\nTeruskan luluskan?')
+        if (!ok) {
+          $('prosesMsg').textContent = 'Dibatalkan.'
+          return
+        }
+        body.confirm = true
+        await hantarProses(body)
+      } else {
+        throw err
+      }
+    }
+    selesaiProses('Permohonan diluluskan dan jadual relief dicipta.')
+  } catch (err) {
+    $('prosesMsg').textContent = err.message
+  }
+}
+
+async function sahkanTolak() {
+  if (!prosesItem) return
+  const sebab = $('pSebabTolak').value.trim()
+  if (!sebab) {
+    $('prosesMsg').textContent = 'Sila nyatakan sebab penolakan.'
+    return
+  }
+  $('prosesMsg').textContent = 'Memproses...'
+  try {
+    await hantarProses({
+      ID_Permohonan: prosesItem.ID_Permohonan,
+      action: 'tolak',
+      sebab_tolak: sebab,
+    })
+    selesaiProses('Permohonan ditolak.')
+  } catch (err) {
+    $('prosesMsg').textContent = err.message
+  }
 }
 
 /* ---------- Senarai jadual ---------- */
@@ -292,7 +489,7 @@ function renderList() {
     </tr>`).join('')
 }
 
-/* ---------- Borang ---------- */
+/* ---------- Borang jadual ---------- */
 
 function resetForm() {
   $('jadualForm').reset()
@@ -347,7 +544,6 @@ async function simpanJadual(e) {
     try {
       d = await sendJadual(body)
     } catch (err) {
-      // Amaran (bukan konflik) — minta pengesahan admin
       if (err.status === 409 && err.data.needConfirm) {
         const ok = confirm(err.data.warnings.join('\n') + '\n\nTeruskan simpan?')
         if (!ok) {
@@ -383,25 +579,24 @@ async function padamJadual(r) {
 
 /* ---------- Mula ---------- */
 
-let jadualReady = false
+let panelReady = false
 
-async function initJadual() {
-  if (jadualReady) return
-  jadualReady = true
+async function initPanel() {
+  if (panelReady) return
+  panelReady = true
   try {
     await loadRef()
+    await loadPermohonan()
     await loadList()
   } catch (err) {
-    jadualReady = false
+    panelReady = false
     $('listMsg').textContent = err.message
   }
 }
 
-// Pilihan masa
 fillSelect($('fMula'), TIMES.map(t => ({ id: t, nama: t })), 'Pilih masa')
 fillSelect($('fTamat'), TIMES.map(t => ({ id: t, nama: t })), 'Pilih masa')
 
-// Acara borang dan senarai
 $('jadualForm').addEventListener('submit', simpanJadual)
 $('btnBatal').addEventListener('click', resetForm)
 $('btnCetak').addEventListener('click', () => window.print())
@@ -429,12 +624,23 @@ $('tbody').addEventListener('click', e => {
   if (dl !== undefined) padamJadual(currentRows[+dl])
 })
 
+$('pStatus').addEventListener('change', loadPermohonan)
+$('pTbody').addEventListener('click', e => {
+  const l = e.target.dataset.lulus
+  const t = e.target.dataset.tolak
+  if (l !== undefined) openProses(+l, 'lulus')
+  if (t !== undefined) openProses(+t, 'tolak')
+})
+$('btnSahkanLulus').addEventListener('click', sahkanLulus)
+$('btnSahkanTolak').addEventListener('click', sahkanTolak)
+$('btnBatalProses').addEventListener('click', closeProses)
+
 $('loginBtn').addEventListener('click', () => netlifyIdentity.open('login'))
 $('logoutBtn').addEventListener('click', () => netlifyIdentity.logout())
 
 netlifyIdentity.on('init', checkAccess)
 netlifyIdentity.on('login', () => { netlifyIdentity.close(); checkAccess() })
-netlifyIdentity.on('logout', () => { jadualReady = false; checkAccess() })
+netlifyIdentity.on('logout', () => { panelReady = false; checkAccess() })
 </script>
 </body>
 </html>
