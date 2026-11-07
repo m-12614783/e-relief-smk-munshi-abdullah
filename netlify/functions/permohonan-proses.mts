@@ -2,11 +2,11 @@ import { requireUser } from "./_lib/auth.mts"
 import { callSheet, listSheet, errorResponse } from "./_lib/sheets.mts"
 import { checkConflicts } from "./_lib/conflict.mts"
 import { logAction } from "./_lib/log.mts"
+import { notifyPemohon } from "./_lib/notify.mts"
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
-// Tukar "8:00" kepada "08:00"
 const pad = (t: string) => {
   const m = String(t).trim().match(/^(\d{1,2}):(\d{2})/)
   return m ? m[1].padStart(2, "0") + ":" + m[2] : String(t).trim()
@@ -61,6 +61,13 @@ export default async (req: Request) => {
 
       await logAction(auth.user.email, auth.role, "TOLAK_PERMOHONAN", id, p,
         { ...p, Status: "Ditolak", Sebab_Tolak: sebab })
+
+      await notifyPemohon(p.ID_Guru, "Permohonan relief ditolak", [
+        "Permohonan relief anda telah DITOLAK.",
+        `Tarikh: ${p.Tarikh}`,
+        `Masa: ${p.Masa_Mula} – ${p.Masa_Tamat}`,
+        `Sebab penolakan: ${sebab}`,
+      ])
 
       return Response.json({ ok: true })
     }
@@ -147,6 +154,16 @@ export default async (req: Request) => {
       { ...p, Status: "Diluluskan", ID_Jadual: idJadual, ID_Guru_Relief: idGuruRelief })
 
     await logAction(auth.user.email, auth.role, "TAMBAH_JADUAL", idJadual, null, record)
+
+    const namaKelas = kelas.find(k => k.ID_Kelas === p.ID_Kelas)?.Nama_Kelas || p.ID_Kelas
+    const namaReliefGuru = guru.find(g => g.ID_Guru === idGuruRelief)?.Nama || idGuruRelief
+    await notifyPemohon(p.ID_Guru, "Permohonan relief diluluskan", [
+      "Permohonan relief anda telah DILULUSKAN.",
+      `Tarikh: ${p.Tarikh}`,
+      `Masa: ${p.Masa_Mula} – ${p.Masa_Tamat}`,
+      `Kelas: ${namaKelas}`,
+      `Guru relief: ${namaReliefGuru}`,
+    ])
 
     return Response.json({ ok: true, ID_Jadual: idJadual, warnings })
   } catch (e) {
