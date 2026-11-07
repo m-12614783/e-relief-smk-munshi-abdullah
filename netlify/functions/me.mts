@@ -1,4 +1,4 @@
-import { requireUser } from "./_lib/auth"
+import { requireUser } from "./_lib/auth.mts"
 
 export default async (req: Request) => {
   const result = await requireUser(req)
