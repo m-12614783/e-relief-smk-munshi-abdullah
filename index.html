@@ -12,8 +12,8 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#081426;color:#e
 header{background:#102b50;padding:18px 22px;border-bottom:1px solid #24466e}
 .top{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:14px}
-.logo{background:#fff;border-radius:10px;padding:4px;display:flex;flex-shrink:0}
-.logo img{height:58px;width:auto;display:block}
+.logo{display:flex;flex-shrink:0}
+.logo img{height:72px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
 .brand h1{margin:0;color:#60c7ff;font-size:24px}
 .brand p{margin:4px 0 0;color:#c4d8f2;font-size:14px}
 .auth{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -29,7 +29,7 @@ h2{color:#60c7ff;margin:0 0 10px}
 .hidden{display:none!important}
 footer{text-align:center;padding:25px;color:#9db4d1}
 @media(max-width:600px){
-  .brand img{height:44px}
+  .logo img{height:52px}
   .brand h1{font-size:20px}
   .brand p{font-size:12px}
 }
@@ -100,3 +100,27 @@ async function loadRole() {
   try {
     const token = await user.jwt()
     const r = await fetch('/.netlify/functions/me', {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error || 'Ralat')
+
+    $('adminLink').classList.remove('hidden')
+    $('status').textContent = d.role === 'admin_utama'
+      ? 'Anda log masuk sebagai Admin Utama.'
+      : 'Anda log masuk sebagai Admin.'
+  } catch (e) {
+    $('adminLink').classList.add('hidden')
+    $('status').textContent = e.message || 'Akaun ini tiada akses admin.'
+  }
+}
+
+$('loginBtn').addEventListener('click', () => netlifyIdentity.open('login'))
+$('logoutBtn').addEventListener('click', () => netlifyIdentity.logout())
+
+netlifyIdentity.on('init', loadRole)
+netlifyIdentity.on('login', () => { netlifyIdentity.close(); loadRole() })
+netlifyIdentity.on('logout', showSignedOut)
+</script>
+</body>
+</html>
