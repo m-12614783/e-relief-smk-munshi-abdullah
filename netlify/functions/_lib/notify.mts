@@ -9,12 +9,16 @@ export async function notifyPemohon(idGuru: string, subject: string, lines: stri
     const guru = await listSheet("Guru")
     const g = guru.find(x => x.ID_Guru === idGuru)
     const email = String(g?.Emel || "").trim()
-    if (!email.includes("@")) return false
+    if (!email.includes("@")) {
+      console.warn("notifyPemohon: emel tiada untuk", idGuru)
+      return false
+    }
 
     const html = lines.map(l => `<p>${esc(l)}</p>`).join("")
     await callSheet({ action: "notify", to: email, subject, html })
     return true
-  }    catch (e) {
-    console.error("notifyPemohon:", e instanceof Error ? e.message : e)
+  } catch (e) {
+    console.error("notifyPemohon:", e instanceof Error ? e.message : String(e))
     return false
   }
+}
