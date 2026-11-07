@@ -9,16 +9,18 @@ export async function callSheet(payload: Record<string, unknown>): Promise<any> 
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({ ...payload, secret }),
+      redirect: "follow",
     })
   } catch {
     throw new Error("NETWORK")
   }
 
+  const text = await res.text()
   let data: any
   try {
-    data = await res.json()
+    data = JSON.parse(text)
   } catch {
-    throw new Error("BADRESP")
+    throw new Error("BADRESP:" + res.status + ":" + text.slice(0, 120).replace(/\s+/g, " "))
   }
   if (!data.ok) throw new Error(data.error || "SHEET")
   return data
@@ -30,11 +32,16 @@ export async function listSheet(sheet: string): Promise<Record<string, string>[]
 }
 
 export function errorResponse(e: unknown) {
-  const code = e instanceof Error ? e.message : "SHEET"
+  const msg = e instanceof Error ? e.message : "SHEET"
+  if (msg.startsWith("BADRESP:")) {
+    return Response.json(
+      { error: "Respons tidak sah dari Apps Script: " + msg.slice(8) },
+      { status: 500 }
+    )
+  }
   const map: Record<string, string> = {
     CONFIG: "Konfigurasi tidak lengkap",
     NETWORK: "Tidak dapat menghubungi Google Sheets",
-    BADRESP: "Respons Google Sheets tidak sah",
   }
-  return Response.json({ error: map[code] || code }, { status: 500 })
+  return Response.json({ error: map[msg] || msg }, { status: 500 })
 }
