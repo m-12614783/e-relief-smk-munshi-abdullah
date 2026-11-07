@@ -12,8 +12,8 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#081426;color:#e
 header{background:#102b50;padding:18px 22px;border-bottom:1px solid #24466e}
 .top{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:14px}
-.logo{background:#fff;border-radius:50%;padding:6px;display:flex;flex-shrink:0;box-shadow:0 0 0 3px #1677d2,0 4px 12px rgba(0,0,0,.35);overflow:hidden}
-.logo img{height:52px;width:52px;object-fit:contain;display:block}
+.logo{display:flex;flex-shrink:0}
+.logo img{height:72px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
 .brand h1{margin:0;color:#60c7ff;font-size:24px}
 .brand p{margin:4px 0 0;color:#c4d8f2;font-size:14px}
 .auth{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -24,16 +24,39 @@ nav a,button{background:#1677d2;color:#fff;border:0;border-radius:8px;padding:11
 nav a:hover,button:hover{background:#2995ef}
 button.ghost{background:#24466e}
 button.ghost:hover{background:#34506e}
+button.small{padding:6px 10px;font-size:13px}
+button.danger{background:#9b2c2c}
+button.danger:hover{background:#c53030}
 main{padding:15px;max-width:1100px;width:100%;margin:auto;flex:1}
 .card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:18px;margin-bottom:16px}
-h2{color:#60c7ff;margin:0 0 10px}
+h2{color:#60c7ff;margin:0 0 12px}
+h3{color:#60c7ff;margin:0 0 10px;font-size:17px}
 .warn{color:#ffd28a}
 .hidden{display:none!important}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:13px;color:#cbdcf2;margin-bottom:4px}
+input,select,textarea{width:100%;padding:10px;border-radius:7px;border:1px solid #49627f;background:#091a30;color:#fff;font-family:inherit;font-size:14px}
+textarea{resize:vertical;min-height:60px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.msg{margin-top:10px;font-size:14px;color:#ffd28a;white-space:pre-line}
+.toolbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #34506e;white-space:nowrap}
+th{color:#60c7ff}
+td.acts{display:flex;gap:6px}
 footer{text-align:center;padding:25px;color:#9db4d1}
 @media(max-width:600px){
-  .logo img{height:40px;width:40px}
+  .logo img{height:52px}
   .brand h1{font-size:20px}
   .brand p{font-size:12px}
+}
+@media print{
+  header,nav,footer,#jadualForm,.toolbar,.acts,#btnCetak,#btnPadamNota{display:none!important}
+  body{background:#fff;color:#000}
+  .card{border:none;background:#fff}
+  th{color:#000}
+  td,th{white-space:normal}
 }
 </style>
 </head>
@@ -62,19 +85,70 @@ footer{text-align:center;padding:25px;color:#9db4d1}
 </nav>
 
 <main>
-  <!-- Skrin ini dipaparkan sehingga server mengesahkan role -->
   <section class="card" id="gate">
     <h2>Memeriksa akses...</h2>
     <p id="gateMsg">Sila tunggu sebentar.</p>
   </section>
 
-  <!-- Kandungan panel hanya dipaparkan selepas server mengesahkan role -->
   <div id="panel" class="hidden">
+
+    <!-- BORANG JADUAL -->
     <section class="card">
-      <h2>Jadual Relief</h2>
-      <p>Modul jadual akan dibina pada langkah 6.</p>
+      <h2 id="formTitle">Tambah Jadual Relief</h2>
+      <form id="jadualForm">
+        <input type="hidden" id="fId">
+        <div class="grid">
+          <div><label for="fTarikh">Tarikh</label><input id="fTarikh" type="date" required></div>
+          <div><label for="fMula">Masa mula</label><select id="fMula" required></select></div>
+          <div><label for="fTamat">Masa tamat</label><select id="fTamat" required></select></div>
+          <div><label for="fKelas">Kelas</label><select id="fKelas" required></select></div>
+          <div><label for="fAsal">Guru asal</label><select id="fAsal" required></select></div>
+          <div><label for="fRelief">Guru relief</label><select id="fRelief" required></select></div>
+          <div><label for="fStatus">Status</label>
+            <select id="fStatus">
+              <option value="Dirancang">Dirancang</option>
+              <option value="Selesai">Selesai</option>
+              <option value="Dibatalkan">Dibatalkan</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid" style="margin-top:12px">
+          <div><label for="fSebab">Sebab relief</label><input id="fSebab" required></div>
+          <div><label for="fCatatan">Catatan (pilihan)</label><textarea id="fCatatan"></textarea></div>
+        </div>
+        <div class="actions">
+          <button type="submit" id="btnSimpan">Simpan</button>
+          <button type="button" id="btnBatal" class="ghost hidden">Batal edit</button>
+        </div>
+        <div id="formMsg" class="msg"></div>
+      </form>
     </section>
 
+    <!-- SENARAI JADUAL -->
+    <section class="card">
+      <h2>Senarai Jadual Relief</h2>
+      <div class="toolbar">
+        <div><label for="tTarikh">Tarikh</label><input id="tTarikh" type="date"></div>
+        <div><label for="tKelas">Kelas</label><select id="tKelas"></select></div>
+        <div><label for="tGuru">Guru</label><select id="tGuru"></select></div>
+        <div><label for="tCarian">Cari nama</label><input id="tCarian" placeholder="Nama guru atau kelas"></div>
+      </div>
+      <div class="actions" style="margin:0 0 12px">
+        <button type="button" class="ghost" id="btnReset">Reset penapis</button>
+        <button type="button" class="ghost" id="btnCetak">Cetak</button>
+      </div>
+      <div class="msg" id="listMsg" style="color:#cbdcf2"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Tarikh</th><th>Masa</th><th>Kelas</th><th>Guru asal</th><th>Guru relief</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PENGURUSAN ADMIN (Admin Utama sahaja) -->
     <section class="card" id="adminOnly">
       <h2>Pengurusan Admin</h2>
       <p>Hanya untuk Admin Utama. Modul ini akan dibina pada langkah 5.</p>
@@ -86,6 +160,42 @@ footer{text-align:center;padding:25px;color:#9db4d1}
 
 <script>
 const $ = id => document.getElementById(id)
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]))
+
+// Pilihan masa setiap 30 minit, 07:00 hingga 18:00
+const TIMES = []
+for (let h = 7; h <= 18; h++) {
+  for (const m of [0, 30]) {
+    if (h === 18 && m === 30) continue
+    TIMES.push(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'))
+  }
+}
+
+async function api(path, options = {}) {
+  const user = netlifyIdentity.currentUser()
+  if (!user) throw new Error('Sesi tamat. Sila log masuk semula.')
+  const token = await user.jwt()
+  const r = await fetch('/.netlify/functions/' + path, {
+    ...options,
+    headers: {
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  })
+  const d = await r.json().catch(() => ({}))
+  if (!r.ok) {
+    const err = new Error(d.error || 'Ralat berlaku')
+    err.status = r.status
+    err.data = d
+    throw err
+  }
+  return d
+}
+
+/* ---------- Akses ---------- */
 
 function showGate(message, needLogin) {
   $('panel').classList.add('hidden')
@@ -108,31 +218,223 @@ async function checkAccess() {
   $('who').textContent = user.email || ''
 
   try {
-    const token = await user.jwt()
-    const r = await fetch('/.netlify/functions/me', {
-      headers: { Authorization: 'Bearer ' + token }
-    })
-    const d = await r.json()
-    if (!r.ok) throw new Error(d.error || 'Akses ditolak')
-
+    const d = await api('me')
     $('roleTag').textContent = d.role === 'admin_utama' ? 'Admin Utama' : 'Admin'
     $('roleTag').classList.remove('hidden')
     $('adminOnly').classList.toggle('hidden', d.role !== 'admin_utama')
     $('gate').classList.add('hidden')
     $('loginBtn').classList.add('hidden')
     $('panel').classList.remove('hidden')
+    initJadual()
   } catch (e) {
     $('roleTag').classList.add('hidden')
     showGate(e.message || 'Akaun ini tiada akses admin.', false)
   }
 }
 
+/* ---------- Rujukan (guru & kelas) ---------- */
+
+let refData = { guru: [], kelas: [] }
+
+function fillSelect(sel, items, placeholder) {
+  sel.innerHTML = `<option value="">${esc(placeholder)}</option>` +
+    items.map(i => `<option value="${esc(i.id)}">${esc(i.nama)}</option>`).join('')
+}
+
+async function loadRef() {
+  refData = await api('rujukan')
+  fillSelect($('fKelas'), refData.kelas, 'Pilih kelas')
+  fillSelect($('fAsal'), refData.guru, 'Pilih guru asal')
+  fillSelect($('fRelief'), refData.guru, 'Pilih guru relief')
+  fillSelect($('tKelas'), refData.kelas, 'Semua kelas')
+  fillSelect($('tGuru'), refData.guru, 'Semua guru')
+}
+
+/* ---------- Senarai jadual ---------- */
+
+let currentRows = []
+
+async function loadList() {
+  const p = new URLSearchParams()
+  if ($('tTarikh').value) p.set('tarikh', $('tTarikh').value)
+  if ($('tKelas').value) p.set('kelas', $('tKelas').value)
+  if ($('tGuru').value) p.set('guru', $('tGuru').value)
+  if ($('tCarian').value.trim()) p.set('carian', $('tCarian').value.trim())
+
+  $('listMsg').textContent = 'Memuatkan...'
+  try {
+    const d = await api('jadual-senarai?' + p.toString())
+    currentRows = d.items
+    renderList()
+    $('listMsg').textContent = d.items.length + ' rekod dijumpai'
+  } catch (e) {
+    $('listMsg').textContent = e.message
+  }
+}
+
+function renderList() {
+  if (!currentRows.length) {
+    $('tbody').innerHTML = '<tr><td colspan="7">Tiada jadual.</td></tr>'
+    return
+  }
+  $('tbody').innerHTML = currentRows.map((r, i) => `
+    <tr>
+      <td>${esc(r.Tarikh)}</td>
+      <td>${esc(r.Masa_Mula)} – ${esc(r.Masa_Tamat)}</td>
+      <td>${esc(r.Nama_Kelas)}</td>
+      <td>${esc(r.Nama_Guru_Asal)}</td>
+      <td>${esc(r.Nama_Guru_Relief)}</td>
+      <td>${esc(r.Status_Tugasan)}</td>
+      <td class="acts">
+        <button type="button" class="small" data-edit="${i}">Edit</button>
+        <button type="button" class="small danger" data-del="${i}">Padam</button>
+      </td>
+    </tr>`).join('')
+}
+
+/* ---------- Borang ---------- */
+
+function resetForm() {
+  $('jadualForm').reset()
+  $('fId').value = ''
+  $('fStatus').value = 'Dirancang'
+  $('formTitle').textContent = 'Tambah Jadual Relief'
+  $('btnBatal').classList.add('hidden')
+}
+
+function startEdit(r) {
+  $('fId').value = r.ID_Jadual
+  $('fTarikh').value = r.Tarikh
+  $('fMula').value = r.Masa_Mula
+  $('fTamat').value = r.Masa_Tamat
+  $('fKelas').value = r.ID_Kelas
+  $('fAsal').value = r.ID_Guru_Asal
+  $('fRelief').value = r.ID_Guru_Relief
+  $('fSebab').value = r.Sebab || ''
+  $('fCatatan').value = r.Catatan || ''
+  $('fStatus').value = r.Status_Tugasan || 'Dirancang'
+  $('formTitle').textContent = 'Kemas Kini Jadual'
+  $('btnBatal').classList.remove('hidden')
+  $('formMsg').textContent = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+async function sendJadual(body) {
+  return api('jadual-simpan', { method: 'POST', body: JSON.stringify(body) })
+}
+
+async function simpanJadual(e) {
+  e.preventDefault()
+  const isEdit = !!$('fId').value
+  const data = {
+    Tarikh: $('fTarikh').value,
+    Masa_Mula: $('fMula').value,
+    Masa_Tamat: $('fTamat').value,
+    ID_Kelas: $('fKelas').value,
+    ID_Guru_Asal: $('fAsal').value,
+    ID_Guru_Relief: $('fRelief').value,
+    Sebab: $('fSebab').value.trim(),
+    Catatan: $('fCatatan').value.trim(),
+    Status_Tugasan: $('fStatus').value,
+  }
+  if (isEdit) data.ID_Jadual = $('fId').value
+
+  const body = { mode: isEdit ? 'update' : 'create', data, confirm: false }
+  $('formMsg').textContent = 'Menyimpan...'
+
+  try {
+    let d
+    try {
+      d = await sendJadual(body)
+    } catch (err) {
+      // Amaran (bukan konflik) — minta pengesahan admin
+      if (err.status === 409 && err.data.needConfirm) {
+        const ok = confirm(err.data.warnings.join('\n') + '\n\nTeruskan simpan?')
+        if (!ok) {
+          $('formMsg').textContent = 'Simpan dibatalkan.'
+          return
+        }
+        body.confirm = true
+        d = await sendJadual(body)
+      } else {
+        throw err
+      }
+    }
+
+    const warn = d.warnings && d.warnings.length ? '\nAmaran: ' + d.warnings.join(' | ') : ''
+    resetForm()
+    $('formMsg').textContent = 'Jadual berjaya disimpan.' + warn
+    loadList()
+  } catch (err) {
+    $('formMsg').textContent = err.message
+  }
+}
+
+async function padamJadual(r) {
+  if (!confirm('Padam jadual ini? Rekod akan disimpan untuk sejarah.')) return
+  try {
+    await api('jadual-padam', { method: 'POST', body: JSON.stringify({ ID_Jadual: r.ID_Jadual }) })
+    if ($('fId').value === r.ID_Jadual) resetForm()
+    loadList()
+  } catch (err) {
+    $('listMsg').textContent = err.message
+  }
+}
+
+/* ---------- Mula ---------- */
+
+let jadualReady = false
+
+async function initJadual() {
+  if (jadualReady) return
+  jadualReady = true
+  try {
+    await loadRef()
+    await loadList()
+  } catch (err) {
+    jadualReady = false
+    $('listMsg').textContent = err.message
+  }
+}
+
+// Pilihan masa
+fillSelect($('fMula'), TIMES.map(t => ({ id: t, nama: t })), 'Pilih masa')
+fillSelect($('fTamat'), TIMES.map(t => ({ id: t, nama: t })), 'Pilih masa')
+
+// Acara borang dan senarai
+$('jadualForm').addEventListener('submit', simpanJadual)
+$('btnBatal').addEventListener('click', resetForm)
+$('btnCetak').addEventListener('click', () => window.print())
+$('btnReset').addEventListener('click', () => {
+  $('tTarikh').value = ''
+  $('tKelas').value = ''
+  $('tGuru').value = ''
+  $('tCarian').value = ''
+  loadList()
+})
+$('tTarikh').addEventListener('change', loadList)
+$('tKelas').addEventListener('change', loadList)
+$('tGuru').addEventListener('change', loadList)
+
+let carianTimer
+$('tCarian').addEventListener('input', () => {
+  clearTimeout(carianTimer)
+  carianTimer = setTimeout(loadList, 400)
+})
+
+$('tbody').addEventListener('click', e => {
+  const ed = e.target.dataset.edit
+  const dl = e.target.dataset.del
+  if (ed !== undefined) startEdit(currentRows[+ed])
+  if (dl !== undefined) padamJadual(currentRows[+dl])
+})
+
 $('loginBtn').addEventListener('click', () => netlifyIdentity.open('login'))
 $('logoutBtn').addEventListener('click', () => netlifyIdentity.logout())
 
 netlifyIdentity.on('init', checkAccess)
 netlifyIdentity.on('login', () => { netlifyIdentity.close(); checkAccess() })
-netlifyIdentity.on('logout', checkAccess)
+netlifyIdentity.on('logout', () => { jadualReady = false; checkAccess() })
 </script>
 </body>
 </html>
