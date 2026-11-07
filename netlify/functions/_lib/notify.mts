@@ -14,7 +14,7 @@ export async function notifyPemohon(idGuru: string, subject: string, lines: stri
     const html = lines.map(l => `<p>${esc(l)}</p>`).join("")
     await callSheet({ action: "notify", to: email, subject, html })
     return true
-  } catch {
+  }    catch (e) {
+    console.error("notifyPemohon:", e instanceof Error ? e.message : e)
     return false
   }
-}
