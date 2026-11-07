@@ -1,9 +1,31 @@
 import { listSheet, errorResponse } from "./_lib/sheets.mts"
 
+// Tukar apa-apa bentuk tarikh/masa kepada tarikh Malaysia (yyyy-MM-dd)
+function tarikhMY(v: unknown): string {
+  const s = String(v ?? "").trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return s.slice(0, 10)
+  const my = new Date(d.getTime() + 8 * 3600 * 1000)
+  return my.toISOString().slice(0, 10)
+}
+
+// Tukar masa kepada HH:mm (menyokong "8:00", "08:00" dan ISO)
+function masaHHmm(v: unknown): string {
+  const s = String(v ?? "").trim()
+  const m = s.match(/^(\d{1,2}):(\d{2})/)
+  if (m) return m[1].padStart(2, "0") + ":" + m[2]
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) {
+    const my = new Date(d.getTime() + 8 * 3600 * 1000)
+    return my.toISOString().slice(11, 16)
+  }
+  return s
+}
+
 export default async (req: Request) => {
   if (req.method !== "GET") return Response.json({ error: "Kaedah tidak sah" }, { status: 405 })
 
-  // Tarikh hari ini mengikut waktu Malaysia (UTC+8)
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10)
 
   try {
@@ -18,13 +40,13 @@ export default async (req: Request) => {
 
     const items = jadual
       .filter(r =>
-        String(r.Tarikh).trim() === today &&
+        tarikhMY(r.Tarikh) === today &&
         String(r.Dipadam) !== "Ya" &&
         r.Status_Tugasan !== "Dibatalkan"
       )
       .map(r => ({
-        Masa_Mula: String(r.Masa_Mula),
-        Masa_Tamat: String(r.Masa_Tamat),
+        Masa_Mula: masaHHmm(r.Masa_Mula),
+        Masa_Tamat: masaHHmm(r.Masa_Tamat),
         Nama_Kelas: namaKelas.get(r.ID_Kelas) || "",
         Nama_Guru_Asal: namaGuru.get(r.ID_Guru_Asal) || "",
         Nama_Guru_Relief: namaGuru.get(r.ID_Guru_Relief) || "",
@@ -36,8 +58,7 @@ export default async (req: Request) => {
       { tarikh: today, items },
       { headers: { "Cache-Control": "no-store" } }
     )
-  } catch {
-    // Mesej generik sahaja, tiada butiran dalaman didedahkan kepada paparan awam
-    return Response.json({ error: "Data tidak dapat dimuatkan" }, { status: 500 })
+  } catch (e) {
+    return errorResponse(e)
   }
 }
