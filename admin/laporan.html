@@ -176,4 +176,185 @@ let laporan = null
 
 async function api(path) {
   const user = netlifyIdentity.currentUser()
-  if (!user) throw new Error('S
+  if (!user) throw new Error('Sesi tamat. Sila log masuk semula.')
+  const token = await user.jwt()
+  const r = await fetch('/.netlify/functions/' + path, {
+    headers: { Authorization: 'Bearer ' + token }
+  })
+  const d = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(d.error || 'Ralat berlaku')
+  return d
+}
+
+/* ---------- Akses ---------- */
+
+function showGate(message, needLogin) {
+  $('panel').classList.add('hidden')
+  $('gate').classList.remove('hidden')
+  $('gateMsg').textContent = message
+  $('gateMsg').className = needLogin ? '' : 'warn'
+  $('loginBtn').classList.toggle('hidden', !needLogin)
+}
+
+async function checkAccess() {
+  const user = netlifyIdentity.currentUser()
+  if (!user) {
+    $('who').textContent = ''
+    $('roleTag').classList.add('hidden')
+    $('logoutBtn').classList.add('hidden')
+    return showGate('Sila log masuk untuk melihat laporan.', true)
+  }
+  $('logoutBtn').classList.remove('hidden')
+  $('who').textContent = user.email || ''
+
+  try {
+    const d = await api('me')
+    $('roleTag').textContent = d.role === 'admin_utama' ? 'Admin Utama' : 'Admin'
+    $('roleTag').classList.remove('hidden')
+    $('gate').classList.add('hidden')
+    $('loginBtn').classList.add('hidden')
+    $('panel').classList.remove('hidden')
+    if (!$('dari').value) setJenis('harian')
+  } catch (e) {
+    $('roleTag').classList.add('hidden')
+    showGate(e.message || 'Akaun ini tiada akses admin.', false)
+  }
+}
+
+/* ---------- Julat tarikh ---------- */
+
+const pad = n => String(n).padStart(2, '0')
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+function julat(jenis) {
+  const now = new Date()
+  if (jenis === 'harian') return [ymd(now), ymd(now)]
+  if (jenis === 'mingguan') {
+    const hari = (now.getDay() + 6) % 7
+    const isnin = new Date(now); isnin.setDate(now.getDate() - hari)
+    const ahad = new Date(isnin); ahad.setDate(isnin.getDate() + 6)
+    return [ymd(isnin), ymd(ahad)]
+  }
+  if (jenis === 'bulanan') {
+    const awal = new Date(now.getFullYear(), now.getMonth(), 1)
+    const akhir = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return [ymd(awal), ymd(akhir)]
+  }
+  return null
+}
+
+function setJenis(jenis) {
+  document.querySelectorAll('[data-jenis]').forEach(b =>
+    b.classList.toggle('active', b.dataset.jenis === jenis))
+  const r = julat(jenis)
+  if (r) {
+    $('dari').value = r[0]
+    $('hingga').value = r[1]
+    muat()
+  }
+}
+
+/* ---------- Muat laporan ---------- */
+
+async function muat() {
+  const dari = $('dari').value
+  const hingga = $('hingga').value
+  if (!dari || !hingga) return ($('msg').textContent = 'Pilih tarikh dari dan hingga.')
+  if (dari > hingga) return ($('msg').textContent = 'Tarikh dari mesti sebelum hingga.')
+
+  $('msg').textContent = 'Memuatkan...'
+  try {
+    laporan = await api(`laporan?dari=${dari}&hingga=${hingga}`)
+    render()
+    $('msg').textContent = ''
+  } catch (e) {
+    $('msg').textContent = e.message
+  }
+}
+
+function render() {
+  const r = laporan.ringkasan
+  $('tajuk').textContent = laporan.dari === laporan.hingga
+    ? `Ringkasan: ${laporan.dari}`
+    : `Ringkasan: ${laporan.dari} hingga ${laporan.hingga}`
+
+  $('rJumlah').textContent = r.jumlahTugasan
+  $('rKelas').textContent = r.kelasDiterimaRelief
+  $('rGuru').textContent = r.guruReliefBertugas
+  $('rPermohonan').textContent = r.jumlahPermohonan
+
+  const s = laporan.permohonanStatus
+  $('rStatus').textContent =
+    `Permohonan: Baharu ${s.Baharu}, Diluluskan ${s.Diluluskan}, Ditolak ${s.Ditolak}` +
+    (s.Lain ? `, Lain ${s.Lain}` : '')
+
+  $('tGuru').innerHTML = laporan.perGuru.length
+    ? laporan.perGuru.map(g => `<tr><td>${esc(g.nama)}</td><td class="num">${g.tugasan}</td></tr>`).join('')
+    : '<tr><td colspan="2">Tiada tugasan.</td></tr>'
+
+  $('tKelas').innerHTML = laporan.perKelas.length
+    ? laporan.perKelas.map(k => `<tr><td>${esc(k.nama)}</td><td class="num">${k.tugasan}</td></tr>`).join('')
+    : '<tr><td colspan="2">Tiada tugasan.</td></tr>'
+
+  $('tSenarai').innerHTML = laporan.senarai.length
+    ? laporan.senarai.map(x => `<tr>
+        <td>${esc(x.Tarikh)}</td>
+        <td>${esc(x.Masa_Mula)} – ${esc(x.Masa_Tamat)}</td>
+        <td>${esc(x.Nama_Kelas)}</td>
+        <td>${esc(x.Nama_Guru_Asal)}</td>
+        <td>${esc(x.Nama_Guru_Relief)}</td>
+        <td>${esc(x.Status_Tugasan)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6">Tiada jadual dalam tempoh ini.</td></tr>'
+}
+
+/* ---------- Eksport Excel (CSV) ---------- */
+
+function muatTurunExcel() {
+  if (!laporan || !laporan.senarai.length) {
+    $('msg').textContent = 'Tiada data untuk dieksport.'
+    return
+  }
+  const lajur = ['Tarikh', 'Masa Mula', 'Masa Tamat', 'Kelas', 'Guru Asal', 'Guru Relief', 'Status']
+  const kepala = lajur.join(',')
+  const baris = laporan.senarai.map(x => [
+    x.Tarikh, x.Masa_Mula, x.Masa_Tamat, x.Nama_Kelas,
+    x.Nama_Guru_Asal, x.Nama_Guru_Relief, x.Status_Tugasan
+  ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+
+  const kandungan = '\uFEFF' + [kepala, ...baris].join('\r\n')
+  const blob = new Blob([kandungan], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `laporan_relief_${laporan.dari}_${laporan.hingga}.csv`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+/* ---------- Acara ---------- */
+
+document.querySelectorAll('[data-jenis]').forEach(b =>
+  b.addEventListener('click', () => setJenis(b.dataset.jenis)))
+$('btnPapar').addEventListener('click', () => {
+  document.querySelectorAll('[data-jenis]').forEach(b => b.classList.remove('active'))
+  muat()
+})
+const tanda = () => document.querySelectorAll('[data-jenis]').forEach(b =>
+  b.classList.toggle('active', b.dataset.jenis === 'sendiri'))
+$('dari').addEventListener('change', tanda)
+$('hingga').addEventListener('change', tanda)
+$('btnCetak').addEventListener('click', () => window.print())
+$('btnExcel').addEventListener('click', muatTurunExcel)
+
+$('loginBtn').addEventListener('click', () => netlifyIdentity.open('login'))
+$('logoutBtn').addEventListener('click', () => netlifyIdentity.logout())
+
+netlifyIdentity.on('init', checkAccess)
+netlifyIdentity.on('login', () => { netlifyIdentity.close(); checkAccess() })
+netlifyIdentity.on('logout', checkAccess)
+</script>
+</body>
+</html>
