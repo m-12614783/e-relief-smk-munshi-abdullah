@@ -30,6 +30,8 @@ export default async (req: Request) => {
   if (!input.Status_Tugasan) input.Status_Tugasan = "Dirancang"
 
   const errors: string[] = []
+  const STATUS_SAH = ["Dirancang", "Selesai", "Dibatalkan"]
+  if (!STATUS_SAH.includes(input.Status_Tugasan)) errors.push("Status tugasan tidak sah")
   if (mode === "update" && !body.data?.ID_Jadual) errors.push("ID jadual diperlukan")
   if (!DATE_RE.test(input.Tarikh)) errors.push("Tarikh tidak sah")
   if (!TIME_RE.test(input.Masa_Mula) || !TIME_RE.test(input.Masa_Tamat)) {
