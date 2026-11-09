@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pengurusan Admin | e-RELIEF</title>
+<link rel="icon" href="/assets/img/logo.png">
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#081426;color:#eef4ff;min-height:100vh;display:flex;flex-direction:column}
+header{background:#102b50;padding:18px 22px;border-bottom:1px solid #24466e}
+.top{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{display:flex;flex-shrink:0}
+.logo img{height:72px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.brand h1{margin:0;color:#60c7ff;font-size:24px}
+.brand p{margin:4px 0 0;color:#c4d8f2;font-size:14px}
+.auth{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#who{color:#cbdcf2;font-size:14px}
+.tag{background:#174e78;padding:5px 10px;border-radius:20px;font-size:13px}
+nav{display:flex;gap:10px;flex-wrap:wrap;padding:15px;max-width:1100px;width:100%;margin:auto}
+nav a,button{background:#1677d2;color:#fff;border:0;border-radius:8px;padding:11px 16px;cursor:pointer;text-decoration:none;font-size:15px;font-family:inherit;display:inline-block}
+nav a:hover,button:hover{background:#2995ef}
+button.ghost{background:#24466e}
+button.ghost:hover{background:#34506e}
+main{padding:15px;max-width:1100px;width:100%;margin:auto;flex:1}
+.card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:18px;margin-bottom:16px}
+h2{color:#60c7ff;margin:0 0 12px}
+h3{color:#60c7ff;margin:0 0 8px;font-size:17px}
+.warn{color:#ffd28a}
+.hidden{display:none!important}
+ol{padding-left:22px;line-height:1.8;color:#e6eef9}
+.nota{background:#0b1d33;border-radius:8px;padding:12px;margin-top:12px;font-size:14px;color:#cbdcf2;line-height:1.6}
+.aksi{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+footer{text-align:center;padding:25px;color:#9db4d1}
+@media(max-width:600px){
+  .logo img{height:52px}
+  .brand h1{font-size:20px}
+  .brand p{font-size:12px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="brand">
+      <div class="logo"><img src="/assets/img/logo.png" alt="Logo SMK Munshi Abdullah"></div>
+      <div>
+        <h1>Pengurusan Admin</h1>
+        <p>e-RELIEF · SMK Munshi Abdullah</p>
+      </div>
+    </div>
+    <div class="auth">
+      <span id="who"></span>
+      <span id="roleTag" class="tag hidden"></span>
+      <button id="loginBtn" type="button" class="hidden">Log masuk</button>
+      <button id="logoutBtn" type="button" class="ghost hidden">Log keluar</button>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <a href="/admin/">Panel Admin</a>
+  <a href="/admin/rujukan.html">Guru & Kelas</a>
+  <a href="/admin/laporan.html">Laporan</a>
+</nav>
+
+<main>
+  <section class="card" id="gate">
+    <h2>Memeriksa akses...</h2>
+    <p id="gateMsg">Sila tunggu sebentar.</p>
+  </section>
+
+  <div id="panel" class="hidden">
+
+    <section class="card">
+      <h2>Akaun anda</h2>
+      <p id="infoAkaun" style="margin:0;color:#cbdcf2;"></p>
+    </section>
+
+    <section class="card">
+      <h2>Jemput admin baharu</h2>
+      <ol>
+        <li>Klik butang <strong>Buka Identity (Netlify)</strong> di bawah.</li>
+        <li>Klik <strong>Invite users</strong>, kemudian masukkan emel admin.</li>
+        <li>Admin menerima emel jemputan, klik pautan, dan tetapkan kata laluan sendiri.</li>
+        <li>Selepas itu, kembali ke halaman Identity, klik nama pengguna tersebut, dan tetapkan <strong>Roles</strong> kepada <code>admin</code>.</li>
+      </ol>
+      <div class="aksi">
+        <a id="linkIdentity" href="#" target="_blank" rel="noopener">Buka Identity (Netlify)</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Tetapkan atau tukar role</h2>
+      <ol>
+        <li>Dalam Identity, klik nama pengguna.</li>
+        <li>Pada <strong>Roles</strong>, pilih atau taip:
+          <ul>
+            <li><code>admin</code>: boleh urus jadual, permohonan, guru, kelas dan laporan.</li>
+            <li><code>admin_utama</code>: semua fungsi, termasuk halaman ini.</li>
+          </ul>
+        </li>
+        <li>Simpan. Pengguna perlu log keluar dan log masuk semula supaya role baharu dikenali.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Nyahaktif akaun</h2>
+      <ol>
+        <li>Dalam Identity, klik nama pengguna.</li>
+        <li>Pilih <strong>Disable</strong> (atau padam pengguna jika tidak lagi diperlukan).</li>
+      </ol>
+      <div class="nota">
+        Sekurang-kurangnya satu Admin Utama mesti sentiasa aktif. Jangan nyahaktifkan akaun anda sendiri jika ia satu-satunya Admin Utama.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Rekod aktiviti</h2>
+      <p style="margin:0 0 12px;color:#cbdcf2;">Semua tindakan penting (tambah, edit, padam jadual, lulus atau tolak permohonan, import, jana kod guru) direkodkan dalam helaian <strong>Rekod Aktiviti</strong>.</p>
+      <div class="aksi">
+        <a href="https://docs.google.com/spreadsheets/d/1vLE5-XiKQYybcN7h-xfid9UHsH0OEpvmS9AkfT0Q3R4/edit" target="_blank" rel="noopener">Buka Google Sheets</a>
+      </div>
+      <div class="nota">
+        Helaian ini hanya untuk dibaca. Jangan ubah atau padam baris secara manual kecuali atas arahan pihak pengurusan sekolah.
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>e-RELIEF · SMK Munshi Abdullah</footer>
+
+<script>
+const $ = id => document.getElementById(id)
+
+// Pautan ke halaman Identity projek (mengikut slug projek anda)
+$('linkIdentity').href = 'https://app.netlify.com/projects/e-relief-smk-munshi-abdullah/configuration/identity'
+
+function showGate(message, needLogin) {
+  $('panel').classList.add('hidden')
+  $('gate').classList.remove('hidden')
+  $('gateMsg').textContent = message
+  $('gateMsg').className = needLogin ? '' : 'warn'
+  $('loginBtn').classList.toggle('hidden', !needLogin)
+}
+
+async function checkAccess() {
+  const user = netlifyIdentity.currentUser()
+  if (!user) {
+    $('who').textContent = ''
+    $('roleTag').classList.add('hidden')
+    $('logoutBtn').classList.add('hidden')
+    return showGate('Sila log masuk untuk mengakses halaman ini.', true)
+  }
+
+  $('logoutBtn').classList.remove('hidden')
+  $('who').textContent = user.email || ''
+
+  try {
+    const token = await user.jwt()
+    const r = await fetch('/.netlify/functions/me', {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+    const d = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(d.error || 'Akses ditolak')
+
+    // Halaman ini hanya untuk Admin Utama
+    if (d.role !== 'admin_utama') {
+      $('roleTag').classList.add('hidden')
+      return showGate('Halaman ini hanya untuk Admin Utama.', false)
+    }
+
+    $('roleTag').textContent = 'Admin Utama'
+    $('roleTag').classList.remove('hidden')
+    $('infoAkaun').textContent = `Anda log masuk sebagai ${user.email} dengan peranan Admin Utama.`
+    $('gate').classList.add('hidden')
+    $('loginBtn').classList.add('hidden')
+    $('panel').classList.remove('hidden')
+  } catch (e) {
+    $('roleTag').classList.add('hidden')
+    showGate(e.message || 'Akaun ini tiada akses.', false)
+  }
+}
+
+$('loginBtn').addEventListener('click', () => netlifyIdentity.open('login'))
+$('logoutBtn').addEventListener('click', () => netlifyIdentity.logout())
+
+netlifyIdentity.on('init', checkAccess)
+netlifyIdentity.on('login', () => { netlifyIdentity.close(); checkAccess() })
+netlifyIdentity.on('logout', checkAccess)
+</script>
+</body>
+</html>
