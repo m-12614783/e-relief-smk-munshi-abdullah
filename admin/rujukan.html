@@ -272,6 +272,7 @@ function renderGuru() {
         <td>${g.Status_Aktif === 'Ya' ? 'Aktif' : 'Tidak aktif'}</td>
         <td class="acts">
           <button type="button" class="small" data-edit-g="${i}">Edit</button>
+          <button type="button" class="small" data-kod-g="${i}">${g.Ada_Kod ? 'Jana semula kod' : 'Jana kod'}</button>
           ${g.Status_Aktif === 'Ya'
             ? `<button type="button" class="small danger" data-status-g="${i}" data-aktif="0">Nyahaktif</button>`
             : `<button type="button" class="small ok" data-status-g="${i}" data-aktif="1">Aktifkan</button>`}
@@ -279,7 +280,6 @@ function renderGuru() {
       </tr>`).join('')
     : '<tr><td colspan="5">Tiada guru.</td></tr>'
 }
-
 function renderKelas() {
   $('kTbody').innerHTML = data.kelas.length
     ? data.kelas.map((k, i) => `<tr>
