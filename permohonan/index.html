@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permohonan Relief | e-RELIEF</title>
+<link rel="icon" href="/assets/img/logo.png">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#081426;color:#eef4ff;min-height:100vh;display:flex;flex-direction:column}
+header{background:#102b50;padding:18px 22px;border-bottom:1px solid #24466e}
+.top{max-width:720px;margin:auto;display:flex;align-items:center;gap:14px}
+.logo img{height:64px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.brand h1{margin:0;color:#60c7ff;font-size:22px}
+.brand p{margin:4px 0 0;color:#c4d8f2;font-size:14px}
+main{padding:20px 15px;max-width:720px;width:100%;margin:auto;flex:1}
+.card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:20px}
+h2{color:#60c7ff;margin:0 0 6px}
+.sub{color:#9db4d1;font-size:14px;margin:0 0 18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.penuh{grid-column:1 / -1}
+label{display:block;font-size:13px;color:#cbdcf2;margin-bottom:5px}
+input,select,textarea{width:100%;padding:11px;border-radius:7px;border:1px solid #49627f;background:#091a30;color:#fff;font-family:inherit;font-size:15px}
+textarea{resize:vertical;min-height:70px}
+.perangkap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+button{background:#1677d2;color:#fff;border:0;border-radius:8px;padding:13px 20px;font-size:16px;cursor:pointer;width:100%;margin-top:18px}
+button:hover{background:#2995ef}
+button:disabled{background:#34506e;cursor:wait}
+.msg{margin-top:14px;font-size:15px;padding:12px;border-radius:8px;display:none}
+.msg.ok{display:block;background:#1f4d33;color:#c8f5d8}
+.msg.ralat{display:block;background:#5a1f1f;color:#ffd0d0}
+footer{text-align:center;padding:20px;color:#9db4d1;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="logo"><img src="/assets/img/logo.png" alt="Logo SMK Munshi Abdullah"></div>
+    <div class="brand">
+      <h1>Permohonan Relief</h1>
+      <p>SMK Munshi Abdullah</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Borang Permohonan</h2>
+    <p class="sub">Isi maklumat di bawah. Pentadbir akan menyemak permohonan anda.</p>
+
+    <form id="borang" novalidate>
+      <!-- Medan perangkap untuk bot. Jangan isi. -->
+      <div class="perangkap" aria-hidden="true">
+        <label>Laman web</label>
+        <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="grid">
+        <div class="penuh">
+          <label for="guru">Nama guru</label>
+          <select id="guru" required><option value="">Memuatkan...</option></select>
+        </div>
+
+        <div>
+          <label for="tarikh">Tarikh</label>
+          <input id="tarikh" type="date" required>
+        </div>
+
+        <div>
+          <label for="kelas">Kelas</label>
+          <select id="kelas" required><option value="">Memuatkan...</option></select>
+        </div>
+
+        <div>
+          <label for="masaMula">Masa mula</label>
+          <input id="masaMula" type="time" step="1800" required>
+        </div>
+
+        <div>
+          <label for="masaTamat">Masa tamat</label>
+          <input id="masaTamat" type="time" step="1800" required>
+        </div>
+
+        <div class="penuh">
+          <label for="sebab">Sebab permohonan</label>
+          <input id="sebab" maxlength="200" required placeholder="Contoh: Sakit, kursus, urusan rasmi">
+        </div>
+
+        <div class="penuh">
+          <label for="catatan">Catatan (pilihan)</label>
+          <textarea id="catatan" maxlength="300"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" id="btnHantar" disabled>Hantar Permohonan</button>
+      <div class="msg" id="msg"></div>
+    </form>
+  </div>
+</main>
+
+<footer>e-RELIEF · SMK Munshi Abdullah</footer>
+
+<script>
+const $ = id => document.getElementById(id)
+
+function papar(teks, jenis) {
+  const m = $('msg')
+  m.textContent = teks
+  m.className = 'msg ' + jenis
+}
+
+// Tarikh minimum ialah hari ini (waktu Malaysia)
+const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' })
+$('tarikh').min = hariIni
+
+async function muatRujukan() {
+  try {
+    const r = await fetch('/.netlify/functions/permohonan-hantar', { cache: 'no-store' })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error || 'Gagal memuatkan senarai')
+
+    $('guru').innerHTML = '<option value="">Pilih nama guru</option>' +
+      d.guru.map(g => `<option value="${g.id}">${g.nama}</option>`).join('')
+    $('kelas').innerHTML = '<option value="">Pilih kelas</option>' +
+      d.kelas.map(k => `<option value="${k.id}">${k.nama}</option>`).join('')
+
+    $('btnHantar').disabled = false
+  } catch (e) {
+    papar('Senarai guru atau kelas tidak dapat dimuatkan. Sila muat semula halaman.', 'ralat')
+  }
+}
+
+$('borang').addEventListener('submit', async e => {
+  e.preventDefault()
+  $('msg').className = 'msg'
+
+  const data = {
+    ID_Guru: $('guru').value,
+    Tarikh: $('tarikh').value,
+    Masa_Mula: $('masaMula').value,
+    Masa_Tamat: $('masaTamat').value,
+    ID_Kelas: $('kelas').value,
+    Sebab: $('sebab').value.trim(),
+    Catatan: $('catatan').value.trim(),
+    website: $('website').value,
+  }
+
+  // Semakan ringkas di pelayar sebelum hantar
+  if (!data.ID_Guru) return papar('Sila pilih nama guru.', 'ralat')
+  if (!data.Tarikh) return papar('Sila pilih tarikh.', 'ralat')
+  if (!data.ID_Kelas) return papar('Sila pilih kelas.', 'ralat')
+  if (!data.Masa_Mula || !data.Masa_Tamat) return papar('Sila isi masa mula dan masa tamat.', 'ralat')
+  if (data.Masa_Mula >= data.Masa_Tamat) return papar('Masa tamat mesti selepas masa mula.', 'ralat')
+  if (!data.Sebab) return papar('Sila nyatakan sebab permohonan.', 'ralat')
+
+  $('btnHantar').disabled = true
+  papar('Menghantar...', 'ok')
+
+  try {
+    const r = await fetch('/.netlify/functions/permohonan-hantar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const d = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(d.error || 'Permohonan gagal dihantar.')
+
+    $('borang').reset()
+    $('tarikh').min = hariIni
+    papar('Permohonan anda telah diterima. Pentadbir akan menyemaknya.', 'ok')
+  } catch (err) {
+    papar(err.message, 'ralat')
+  } finally {
+    $('btnHantar').disabled = false
+  }
+})
+
+muatRujukan()
+</script>
+</body>
+</html>
