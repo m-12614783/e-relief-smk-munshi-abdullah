@@ -29,10 +29,10 @@ button.danger{background:#9b2c2c}
 button.danger:hover{background:#c53030}
 button.ok{background:#1f6b3d}
 button.ok:hover{background:#2c8a50}
+button:disabled{background:#34506e;cursor:not-allowed}
 main{padding:15px;max-width:1100px;width:100%;margin:auto;flex:1}
 .card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:18px;margin-bottom:16px}
 h2{color:#60c7ff;margin:0 0 12px}
-h3{color:#60c7ff;margin:0 0 10px;font-size:17px}
 .warn{color:#ffd28a}
 .hidden{display:none!important}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
@@ -45,12 +45,10 @@ input,select{width:100%;padding:10px;border-radius:7px;border:1px solid #49627f;
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:left;padding:9px;border-bottom:1px solid #34506e;white-space:nowrap}
 th{color:#60c7ff}
-td.acts{display:flex;gap:6px}
-.nyahaktif{color:#ffb4b4}
+td.acts{display:flex;gap:6px;flex-wrap:wrap}
 .ringkas{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;font-size:14px}
 .status-OK{color:#7ee2a8;font-weight:bold}
 .status-Ralat,.status-Wujud,.status-Pendua{color:#ffb4b4;font-weight:bold}
-.dua{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 footer{text-align:center;padding:25px;color:#9db4d1}
 @media(max-width:600px){
   .logo img{height:52px}
@@ -272,7 +270,7 @@ function renderGuru() {
         <td>${g.Status_Aktif === 'Ya' ? 'Aktif' : 'Tidak aktif'}</td>
         <td class="acts">
           <button type="button" class="small" data-edit-g="${i}">Edit</button>
-          <button type="button" class="small" data-kod-g="${i}">${g.Ada_Kod ? 'Jana semula kod' : 'Jana kod'}</button>
+          <button type="button" class="small ok" data-kod-g="${i}">${g.Ada_Kod ? 'Jana semula kod' : 'Jana kod'}</button>
           ${g.Status_Aktif === 'Ya'
             ? `<button type="button" class="small danger" data-status-g="${i}" data-aktif="0">Nyahaktif</button>`
             : `<button type="button" class="small ok" data-status-g="${i}" data-aktif="1">Aktifkan</button>`}
@@ -280,6 +278,7 @@ function renderGuru() {
       </tr>`).join('')
     : '<tr><td colspan="5">Tiada guru.</td></tr>'
 }
+
 function renderKelas() {
   $('kTbody').innerHTML = data.kelas.length
     ? data.kelas.map((k, i) => `<tr>
@@ -390,11 +389,10 @@ async function simpanKelas(e) {
 /* ---------- Tukar status ---------- */
 
 async function tukarStatus(jenis, item, aktif) {
-  const label = jenis === 'guru' ? 'guru' : 'kelas'
   const nama = jenis === 'guru' ? item.Nama : item.Nama_Kelas
   const id = jenis === 'guru' ? item.ID_Guru : item.ID_Kelas
   const aksi = aktif ? 'Aktifkan' : 'Nyahaktif'
-  if (!confirm(`${aksi} ${label} ${nama}?`)) return
+  if (!confirm(`${aksi} ${jenis} ${nama}?`)) return
   try {
     await api('rujukan-urus', {
       method: 'POST',
@@ -404,6 +402,62 @@ async function tukarStatus(jenis, item, aktif) {
   } catch (err) {
     alert(err.message)
   }
+}
+
+/* ---------- Jana kod pengesahan guru ---------- */
+
+async function janaKodGuru(g) {
+  if (!confirm(`Jana kod pengesahan baharu untuk ${g.Nama}?\n\nKod lama akan terus tidak sah.`)) return
+
+  let d
+  try {
+    d = await api('guru-kod', { method: 'POST', body: JSON.stringify({ ID_Guru: g.ID_Guru }) })
+  } catch (err) {
+    alert(err.message)
+    return
+  }
+
+  const lama = document.getElementById('kodOverlay')
+  if (lama) lama.remove()
+
+  const overlay = document.createElement('div')
+  overlay.id = 'kodOverlay'
+  overlay.style.cssText =
+    'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'
+  overlay.innerHTML = `
+    <div style="background:#10233d;border:1px solid #24466e;border-radius:12px;padding:24px;max-width:420px;width:100%;text-align:center;font-family:Arial,sans-serif;color:#eef4ff;">
+      <h2 style="color:#60c7ff;margin:0 0 8px;font-size:20px;">Kod Pengesahan</h2>
+      <p style="margin:0 0 14px;color:#cbdcf2;font-size:14px;">${esc(d.Nama)}</p>
+      <div id="kodTeks" style="font-size:36px;letter-spacing:8px;font-weight:bold;background:#091a30;border:1px solid #49627f;border-radius:8px;padding:14px;margin-bottom:14px;">${esc(d.kod)}</div>
+      <p style="margin:0 0 16px;color:#ffd28a;font-size:13px;">Beri kod ini kepada guru secara peribadi. Kod ini tidak akan dipaparkan semula.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button type="button" id="btnSalinKod" style="background:#1677d2;color:#fff;border:0;border-radius:8px;padding:11px 18px;cursor:pointer;font-size:15px;">Salin kod</button>
+        <button type="button" id="btnTutupKod" style="background:#24466e;color:#fff;border:0;border-radius:8px;padding:11px 18px;cursor:pointer;font-size:15px;">Tutup</button>
+      </div>
+    </div>`
+  document.body.appendChild(overlay)
+
+  const tutup = () => {
+    overlay.remove()
+    muatSenarai().catch(() => {})
+  }
+
+  overlay.querySelector('#btnTutupKod').addEventListener('click', tutup)
+  overlay.addEventListener('click', ev => { if (ev.target === overlay) tutup() })
+
+  overlay.querySelector('#btnSalinKod').addEventListener('click', async ev => {
+    try {
+      await navigator.clipboard.writeText(d.kod)
+      ev.target.textContent = 'Telah disalin'
+    } catch {
+      const range = document.createRange()
+      range.selectNodeContents(overlay.querySelector('#kodTeks'))
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+      ev.target.textContent = 'Tekan Ctrl+C'
+    }
+  })
 }
 
 /* ---------- Import CSV ---------- */
@@ -438,17 +492,13 @@ function petaRows(jenis, teks) {
   if (table.length < 2) throw new Error('Fail kosong atau tiada baris data.')
   const header = table[0].map(h => h.trim().toLowerCase())
   const idx = {}
-  for (const k of KEYS[jenis]) {
-    idx[k] = header.indexOf(k.toLowerCase())
-  }
+  for (const k of KEYS[jenis]) idx[k] = header.indexOf(k.toLowerCase())
   const wajib = jenis === 'guru' ? 'Nama' : 'Nama_Kelas'
   if (idx[wajib] < 0) throw new Error(`Lajur "${wajib}" tidak dijumpai dalam fail.`)
 
   return table.slice(1).map(r => {
     const obj = {}
-    for (const k of KEYS[jenis]) {
-      obj[k] = idx[k] >= 0 ? (r[idx[k]] || '').trim() : ''
-    }
+    for (const k of KEYS[jenis]) obj[k] = idx[k] >= 0 ? (r[idx[k]] || '').trim() : ''
     return obj
   })
 }
@@ -539,8 +589,10 @@ $('btnBatalImport').addEventListener('click', batalImport)
 $('gTbody').addEventListener('click', e => {
   const ed = e.target.dataset.editG
   const st = e.target.dataset.statusG
+  const kd = e.target.dataset.kodG
   if (ed !== undefined) editGuru(data.guru[+ed])
   if (st !== undefined) tukarStatus('guru', data.guru[+st], e.target.dataset.aktif === '1')
+  if (kd !== undefined) janaKodGuru(data.guru[+kd])
 })
 
 $('kTbody').addEventListener('click', e => {
