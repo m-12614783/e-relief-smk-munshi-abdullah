@@ -1,11 +1,14 @@
 import { listSheet, errorResponse } from "./_lib/sheets.mts"
 
-// Cache memori untuk data rujukan (Guru dan Kelas), dikemas kini setiap 10 minit
+// Cache memori dikongsi oleh semua paparan TV
+const CACHE_MS = 60 * 1000
+let cacheJadual: { t: number; items: any[]; tarikh: string } | null = null
+
 let cacheRujukan: { t: number; namaGuru: Map<string, string>; namaKelas: Map<string, string> } | null = null
-const CACHE_MS = 10 * 60 * 1000
+const CACHE_RUJUKAN_MS = 10 * 60 * 1000
 
 async function dapatRujukan() {
-  if (cacheRujukan && Date.now() - cacheRujukan.t < CACHE_MS) return cacheRujukan
+  if (cacheRujukan && Date.now() - cacheRujukan.t < CACHE_RUJUKAN_MS) return cacheRujukan
   const [guru, kelas] = await Promise.all([listSheet("Guru"), listSheet("Kelas")])
   cacheRujukan = {
     t: Date.now(),
@@ -15,7 +18,6 @@ async function dapatRujukan() {
   return cacheRujukan
 }
 
-// Tukar apa-apa bentuk tarikh kepada yyyy-MM-dd (waktu Malaysia)
 function tarikhMY(v: unknown): string {
   const s = String(v ?? "").trim()
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
@@ -24,7 +26,6 @@ function tarikhMY(v: unknown): string {
   return new Date(d.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 10)
 }
 
-// Tukar masa kepada HH:mm
 function masaHHmm(v: unknown): string {
   const s = String(v ?? "").trim()
   const m = s.match(/^(\d{1,2}):(\d{2})/)
@@ -40,6 +41,13 @@ export default async (req: Request) => {
   if (req.method !== "GET") return Response.json({ error: "Kaedah tidak sah" }, { status: 405 })
 
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10)
+
+  // Guna cache jika masih segar dan untuk hari yang sama
+  if (cacheJadual && cacheJadual.tarikh === today && Date.now() - cacheJadual.t < CACHE_MS) {
+    return Response.json({ tarikh: today, items: cacheJadual.items }, {
+      headers: { "Cache-Control": "no-store" },
+    })
+  }
 
   try {
     const [jadual, rujukan] = await Promise.all([
@@ -63,11 +71,18 @@ export default async (req: Request) => {
       }))
       .sort((a, b) => a.Masa_Mula.localeCompare(b.Masa_Mula))
 
-    return Response.json(
-      { tarikh: today, items },
-      { headers: { "Cache-Control": "no-store" } }
-    )
+    cacheJadual = { t: Date.now(), items, tarikh: today }
+
+    return Response.json({ tarikh: today, items }, {
+      headers: { "Cache-Control": "no-store" },
+    })
   } catch (e) {
+    // Jika gagal tetapi ada cache hari ini, pulangkan data terakhir
+    if (cacheJadual && cacheJadual.tarikh === today) {
+      return Response.json({ tarikh: today, items: cacheJadual.items }, {
+        headers: { "Cache-Control": "no-store" },
+      })
+    }
     return errorResponse(e)
   }
 }
