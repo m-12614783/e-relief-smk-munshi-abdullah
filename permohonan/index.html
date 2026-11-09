@@ -23,6 +23,7 @@ h2{color:#60c7ff;margin:0 0 6px}
 label{display:block;font-size:13px;color:#cbdcf2;margin-bottom:5px}
 input,select,textarea{width:100%;padding:11px;border-radius:7px;border:1px solid #49627f;background:#091a30;color:#fff;font-family:inherit;font-size:15px}
 textarea{resize:vertical;min-height:70px}
+.kod{letter-spacing:6px;font-size:20px;text-align:center}
 .perangkap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 button{background:#1677d2;color:#fff;border:0;border-radius:8px;padding:13px 20px;font-size:16px;cursor:pointer;width:100%;margin-top:18px}
 button:hover{background:#2995ef}
@@ -47,19 +48,23 @@ footer{text-align:center;padding:20px;color:#9db4d1;font-size:13px}
 <main>
   <div class="card">
     <h2>Borang Permohonan</h2>
-    <p class="sub">Isi maklumat di bawah. Pentadbir akan menyemak permohonan anda.</p>
+    <p class="sub">Isi maklumat di bawah. Kod pengesahan ialah kod peribadi anda yang diberikan oleh pentadbir.</p>
 
     <form id="borang" novalidate>
-      <!-- Medan perangkap untuk bot. Jangan isi. -->
       <div class="perangkap" aria-hidden="true">
         <label>Laman web</label>
-        <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+        <input type="text" id="website" tabindex="-1" autocomplete="off">
       </div>
 
       <div class="grid">
         <div class="penuh">
           <label for="guru">Nama guru</label>
           <select id="guru" required><option value="">Memuatkan...</option></select>
+        </div>
+
+        <div class="penuh">
+          <label for="kod">Kod pengesahan (6 digit)</label>
+          <input id="kod" class="kod" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="------">
         </div>
 
         <div>
@@ -110,9 +115,13 @@ function papar(teks, jenis) {
   m.className = 'msg ' + jenis
 }
 
-// Tarikh minimum ialah hari ini (waktu Malaysia)
 const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' })
 $('tarikh').min = hariIni
+
+// Kod hanya nombor
+$('kod').addEventListener('input', () => {
+  $('kod').value = $('kod').value.replace(/\D/g, '').slice(0, 6)
+})
 
 async function muatRujukan() {
   try {
@@ -137,6 +146,7 @@ $('borang').addEventListener('submit', async e => {
 
   const data = {
     ID_Guru: $('guru').value,
+    Kod: $('kod').value.trim(),
     Tarikh: $('tarikh').value,
     Masa_Mula: $('masaMula').value,
     Masa_Tamat: $('masaTamat').value,
@@ -146,8 +156,8 @@ $('borang').addEventListener('submit', async e => {
     website: $('website').value,
   }
 
-  // Semakan ringkas di pelayar sebelum hantar
   if (!data.ID_Guru) return papar('Sila pilih nama guru.', 'ralat')
+  if (!/^\d{6}$/.test(data.Kod)) return papar('Sila masukkan kod pengesahan 6 digit.', 'ralat')
   if (!data.Tarikh) return papar('Sila pilih tarikh.', 'ralat')
   if (!data.ID_Kelas) return papar('Sila pilih kelas.', 'ralat')
   if (!data.Masa_Mula || !data.Masa_Tamat) return papar('Sila isi masa mula dan masa tamat.', 'ralat')
@@ -171,6 +181,7 @@ $('borang').addEventListener('submit', async e => {
     papar('Permohonan anda telah diterima. Pentadbir akan menyemaknya.', 'ok')
   } catch (err) {
     papar(err.message, 'ralat')
+    $('kod').value = ''
   } finally {
     $('btnHantar').disabled = false
   }
