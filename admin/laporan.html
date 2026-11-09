@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laporan | e-RELIEF</title>
+<link rel="icon" href="/assets/img/logo.png">
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#081426;color:#eef4ff;min-height:100vh;display:flex;flex-direction:column}
+header{background:#102b50;padding:18px 22px;border-bottom:1px solid #24466e}
+.top{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{display:flex;flex-shrink:0}
+.logo img{height:72px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.brand h1{margin:0;color:#60c7ff;font-size:24px}
+.brand p{margin:4px 0 0;color:#c4d8f2;font-size:14px}
+.auth{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#who{color:#cbdcf2;font-size:14px}
+.tag{background:#174e78;padding:5px 10px;border-radius:20px;font-size:13px}
+nav{display:flex;gap:10px;flex-wrap:wrap;padding:15px;max-width:1100px;width:100%;margin:auto}
+nav a,button{background:#1677d2;color:#fff;border:0;border-radius:8px;padding:11px 16px;cursor:pointer;text-decoration:none;font-size:15px;font-family:inherit;display:inline-block}
+nav a:hover,button:hover{background:#2995ef}
+button.ghost{background:#24466e}
+button.ghost:hover{background:#34506e}
+button.active{background:#2995ef;box-shadow:0 0 0 2px #60c7ff inset}
+main{padding:15px;max-width:1100px;width:100%;margin:auto;flex:1}
+.card{background:#10233d;border:1px solid #24466e;border-radius:12px;padding:18px;margin-bottom:16px}
+h2{color:#60c7ff;margin:0 0 12px}
+h3{color:#60c7ff;margin:0 0 10px;font-size:17px}
+.warn{color:#ffd28a}
+.hidden{display:none!important}
+.hujung{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+label{display:block;font-size:13px;color:#cbdcf2;margin-bottom:4px}
+input,select{padding:10px;border-radius:7px;border:1px solid #49627f;background:#091a30;color:#fff;font-family:inherit;font-size:14px}
+.jenis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.kad{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kad div{background:#0b1d33;border:1px solid #24466e;border-radius:10px;padding:14px}
+.kad .nilai{font-size:30px;font-weight:bold;color:#fff}
+.kad .label{font-size:13px;color:#9db4d1;margin-top:4px}
+.dua{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px;border-bottom:1px solid #34506e}
+th{color:#60c7ff}
+td.num{text-align:right;font-weight:bold}
+.msg{font-size:14px;color:#cbdcf2;margin-top:8px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+footer{text-align:center;padding:25px;color:#9db4d1}
+@media(max-width:600px){
+  .logo img{height:52px}
+  .brand h1{font-size:20px}
+  .brand p{font-size:12px}
+}
+@media print{
+  header,nav,footer,#kawalan,.actions,#gate,.auth{display:none!important}
+  body{background:#fff;color:#000}
+  .card{border:none;background:#fff;break-inside:avoid}
+  .kad div{border:1px solid #999;background:#fff}
+  .kad .nilai,.kad .label,th,td,h2,h3{color:#000!important}
+  th{color:#000}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="brand">
+      <div class="logo"><img src="/assets/img/logo.png" alt="Logo SMK Munshi Abdullah"></div>
+      <div>
+        <h1>Laporan Relief</h1>
+        <p>e-RELIEF · SMK Munshi Abdullah</p>
+      </div>
+    </div>
+    <div class="auth">
+      <span id="who"></span>
+      <span id="roleTag" class="tag hidden"></span>
+      <button id="loginBtn" type="button" class="hidden">Log masuk</button>
+      <button id="logoutBtn" type="button" class="ghost hidden">Log keluar</button>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <a href="/admin/">Panel Admin</a>
+  <a href="/admin/rujukan.html">Guru & Kelas</a>
+  <a href="/">Dashboard</a>
+  <a href="/tv/">Paparan TV</a>
+</nav>
+
+<main>
+  <section class="card" id="gate">
+    <h2>Memeriksa akses...</h2>
+    <p id="gateMsg">Sila tunggu sebentar.</p>
+  </section>
+
+  <div id="panel" class="hidden">
+    <section class="card" id="kawalan">
+      <h2>Julat Laporan</h2>
+      <div class="jenis">
+        <button type="button" class="ghost" data-jenis="harian">Harian</button>
+        <button type="button" class="ghost" data-jenis="mingguan">Mingguan</button>
+        <button type="button" class="ghost" data-jenis="bulanan">Bulanan</button>
+        <button type="button" class="ghost" data-jenis="sendiri">Tarikh sendiri</button>
+      </div>
+      <div class="hujung">
+        <div><label for="dari">Dari</label><input id="dari" type="date"></div>
+        <div><label for="hingga">Hingga</label><input id="hingga" type="date"></div>
+        <button type="button" id="btnPapar">Papar</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </section>
+
+    <section class="card">
+      <h2 id="tajuk">Ringkasan</h2>
+      <div class="kad">
+        <div><div class="nilai" id="rJumlah">0</div><div class="label">Jumlah tugasan</div></div>
+        <div><div class="nilai" id="rKelas">0</div><div class="label">Kelas menerima relief</div></div>
+        <div><div class="nilai" id="rGuru">0</div><div class="label">Guru relief bertugas</div></div>
+        <div><div class="nilai" id="rPermohonan">0</div><div class="label">Permohonan dalam tempoh</div></div>
+      </div>
+      <p class="msg" id="rStatus"></p>
+      <div class="actions">
+        <button type="button" id="btnCetak">Cetak / Simpan PDF</button>
+        <button type="button" id="btnExcel" class="ghost">Muat turun Excel</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="dua">
+        <div>
+          <h3>Tugasan setiap guru relief</h3>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Guru</th><th class="num">Tugasan</th></tr></thead>
+              <tbody id="tGuru"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h3>Relief setiap kelas</h3>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Kelas</th><th class="num">Relief</th></tr></thead>
+              <tbody id="tKelas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Senarai jadual</h3>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Tarikh</th><th>Masa</th><th>Kelas</th><th>Guru asal</th><th>Guru relief</th><th>Status</th></tr>
+          </thead>
+          <tbody id="tSenarai"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>e-RELIEF · SMK Munshi Abdullah</footer>
+
+<script>
+const $ = id => document.getElementById(id)
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]))
+
+let laporan = null
+
+async function api(path) {
+  const user = netlifyIdentity.currentUser()
+  if (!user) throw new Error('S
