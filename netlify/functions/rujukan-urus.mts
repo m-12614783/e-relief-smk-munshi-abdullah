@@ -138,7 +138,12 @@ export default async (req: Request) => {
     if (req.method === "GET") {
       const [guru, kelas] = await Promise.all([listSheet("Guru"), listSheet("Kelas")])
       return Response.json({
-        guru: guru.filter(g => g.ID_Guru),
+               guru: guru
+          .filter(g => g.ID_Guru)
+          .map(({ Kod_Hash, Gagal_Cubaan, Kunci_Hingga, ...rest }) => ({
+            ...rest,
+            Ada_Kod: Boolean(Kod_Hash),
+          })),
         kelas: kelas.filter(k => k.ID_Kelas),
       })
     }
